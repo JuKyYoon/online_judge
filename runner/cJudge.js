@@ -17,8 +17,9 @@ export default class CJudge {
     }
 
     async compile(callback,failCallback) {
-        const args = [this.source, '-o', this.out]
+        const args = [this.source, '-o', this.out, '-Wall', '-g']
         const compiler = spawn('gcc', args);
+        let errCheck = false;
         let errorMsg ="";
         compiler.stdout.on('data', (data)=> {
             console.log(`stdout ${data}`)
@@ -26,24 +27,20 @@ export default class CJudge {
 
         compiler.stderr.on('data', (data) => {
             console.log(`error1 ${data}`)
+            errCheck = true;
             errorMsg += String(data);
             // failCallback(String(data));
             // throw new MyError(500, String(data));
         })
 
         compiler.on('close', (data) => {
-            if(data == 0) {
+            console.log(data)
+            if(data == 0 && !errCheck) {
                 let answer = []
                 let returnResult = []
-                fs.readFile(`submission/${this.pbno}/output.txt`, 'utf8' , (err, data) => {
-                    if (err) {
-                      console.error(err)
-                      failCallback("read output file fail")
-                    }
-                    answer = data.toString().split("\n");
-                })
+                let outputData = fs.readFileSync(`submission/${this.pbno}/output.txt`, 'utf8');
+                answer = outputData.toString().trim().split("\r\n")
                 console.log(answer)
-
                 fs.readFile(`submission/${this.pbno}/input.txt`, 'utf8' , (err, data) => {
                     if (err) {
                       console.error(err)
@@ -62,9 +59,9 @@ export default class CJudge {
                         let output = result.stdout.toString("utf-8");
                         const errorCheck= result.error;
                         const runtimeCheck = result.signal;
-                        console.log(result, output)
                         // console.log(result.stdout.toString("utf-8"))
                         // console.log(result.stderr.toString("utf-8"))
+                        console.log(result)
                         if(errorCheck) {
                             const errcode = result.error.code;
                             if(errcode == 'ETIMEDOUT') {
@@ -78,6 +75,7 @@ export default class CJudge {
                             if(runtimeCheck == "SIGSEGV") {
                                 returnResult.push({"result" : {"status": "fail", "type":"runtime"}});
                             } else {
+                                console.log(output, answer[i], output === answer[i])
                                 if(output === answer[i]) {
                                     returnResult.push({"result" : {"status": "success", "type":endTime - startTime}});
                                 } else {
@@ -89,7 +87,9 @@ export default class CJudge {
                     }
                     callback(returnResult);
                 })
-            } else if (data == 1) {
+            } else if (data == 0 && errCheck) {
+                callback([{"result" : {"status": "fail", "type":"warning", "msg" : errorMsg}}])
+            } else  {
                 console.log(errorMsg)
                 callback([{"result" : {"status": "fail", "type":"compile"}}])
             }

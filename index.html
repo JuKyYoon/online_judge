@@ -67,15 +67,18 @@ int main()
                     $("#submit-result").empty().append(`<p style="color:purple">컴파일에러</p>`)
                 } else if (failType == "runtime") {
                     $("#submit-result").empty().append(`<p style="color:purple">런타임에러</p>`)
+                } else if (failType == "warning") {
+                    $("#submit-result").empty().append(`<p style="color:purple">경고<br/>${data[0].result.msg}</p>`)
                 } else {
                     $("#submit-result").empty().append(`<p style="color:red">틀렸습니다</p>`)
+
                 }
             }
         }
 
         $("#submit").click((e) => {
             console.log(encodeURI(editor.getValue()));
-
+            $("#submit-result").empty().append(`<p style="color:orange">채점중</p>`)
             const pbno = $("#problem_id").val();
 
             $.ajax({
@@ -91,6 +94,7 @@ int main()
                 },
                 error: function(xhr, status, msg) {
                     console.log(status, msg)
+                    $("#submit-result").empty().append(`<p style="color:red"><strong>서버 에러</strong></p>`)
                 }
             })
 
