@@ -7,17 +7,20 @@ export default class JudgeController {
     static submitProblem = async (req, res, next) => {
         try {
             function callback(result) {
-                return res.status(200).json(new Response(200, 'success', 'message2', result));
+                return res.status(200).json(new Response(200, 'success', 'success', result));
+            }
+            function failCallback(result) {
+                return res.status(200).json(new Response(200, 'fail', 'compile error', result));
             }
             // const result
-            const pbno = req.params.pbno;
+            const pbno = req.params.pbno.trim();
             const str = req.body.source;
-            const source = decodeURIComponent(str.replace(/\+/g, ' '));
-            const cjudge = new CJudge();
-
+            // const source = decodeURIComponent(str.replace(/\+/g, ' '));
+            const source = decodeURI(str)
+            // console.log(source);
+            const cjudge = new CJudge(pbno);
             cjudge.writeFile(source);
-            cjudge.compile(callback);
-
+            cjudge.compile(callback, failCallback);
             
         } catch (err) {
             next(err);

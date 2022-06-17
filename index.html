@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js" integrity="sha512-hG/Qw6E14LsVUaQRSgw0RrFA1wl5QPG1a4bCOUgwzkGPIVFsOPUPpbr90DFavEEqFMwFXPVI0NS4MzKsInlKxQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/clike/clike.min.js" integrity="sha512-l8ZIWnQ3XHPRG3MQ8+hT1OffRSTrFwrph1j1oc1Fzc9UKVGef5XN9fdO0vm3nW0PRgQ9LJgck6ciG59m69rvfg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css" integrity="sha512-uf06llspW44/LZpHzHT6qBOIVODjWtv4MxCricRxkzvopAlSWnTf6hpZTFxuuZcuNE9CBQhqE0Seu1CoRk84nQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/eclipse.min.css" integrity="sha512-Gv0sGKOVrQcQjUHL+xd9Bpq5AvLKbcQMb8s4J1//caCLxqvj00CLJMzJlqnTHTCQbKFRpPHqzXteq6dSMs7PEw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <div>
+        <div>
+            <select id="problem_id">
+                <option value="1000" selected="selected">1000번</option>
+                <option value="1001">1001번</option>
+            </select>
+            <p id="title">1000번 제출</p>
+            <div id="editor"></div>
+            <button id="submit">제출하기</button>
+            <div id="submit-result">
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        let value = `#include <stdio.h>
+int main()
+{
+	int a, b;
+	scanf("%d %d", &a, &b);
+	printf("%d", a + b);
+	return 0;
+}`
+        var e = document.getElementById("editor");
+        var editor = CodeMirror(e, {
+            lineNumbers: true,
+	        mode: "text/x-csrc",
+	        value: value,
+	        theme: 'eclipse',
+            styleActiveLine: true,
+        });
+
+        function checkResult(data){
+            let resultStatus = true;
+            let failType = "";
+            let exectime = 0;
+            for(let d of data) {
+                if(d.result.status == "fail") {
+                    resultStatus = false;
+                    failType = d.result.type
+                } else {
+                    exectime = d.result.type > exectime ? d.result.type : exectime;
+                }
+            }
+
+            if(resultStatus) {
+                $("#submit-result").empty().append(`<p style="color:green">맞았습니다. ${exectime}ms </p>`)
+            } else {
+                if(failType == "time") {
+                    $("#submit-result").empty().append(`<p style="color:red">시간초과</p>`)
+                } else if (failType == "compile") {
+                    $("#submit-result").empty().append(`<p style="color:purple">컴파일에러</p>`)
+                } else if (failType == "runtime") {
+                    $("#submit-result").empty().append(`<p style="color:purple">런타임에러</p>`)
+                } else {
+                    $("#submit-result").empty().append(`<p style="color:red">틀렸습니다</p>`)
+                }
+            }
+        }
+
+        $("#submit").click((e) => {
+            console.log(encodeURI(editor.getValue()));
+
+            const pbno = $("#problem_id").val();
+
+            $.ajax({
+                url: `http://localhost:8080/api/judge/${pbno}`,
+                data: {
+                    source: encodeURI(editor.getValue())
+                },
+                type: "POST",
+                dataType: "json",
+                success: function(res){
+                    console.log(res)
+                    checkResult(res.result);
+                },
+                error: function(xhr, status, msg) {
+                    console.log(status, msg)
+                }
+            })
+
+        });
+
+        $("#problem_id").change((event) => {
+            $("#title").empty().text(`${event.target.value}번 제출`)
+        })
+        
+    </script>
+</body>
+</html>
